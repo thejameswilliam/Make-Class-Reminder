@@ -63,7 +63,6 @@ class makeReminder
     {
         //General
         include_once MAKEREM_ABSPATH . 'inc/acf.php';
-        include_once MAKEREM_ABSPATH . 'inc/reminders.php';
 
     }
 
