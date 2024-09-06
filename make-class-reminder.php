@@ -191,9 +191,6 @@ class makeReminder
 
 
 
-register_activation_hook(__FILE__, array('Tribe_Events_Instructor_Reminder', 'activate'));
-register_deactivation_hook(__FILE__, array('Tribe_Events_Instructor_Reminder', 'deactivate'));
+register_activation_hook(__FILE__, array('makeReminder', 'activate'));
+register_deactivation_hook(__FILE__, array('makeReminder', 'deactivate'));
 new makeReminder();
-
-
-
