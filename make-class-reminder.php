@@ -56,9 +56,7 @@ class makeReminder
         }
     }
     private function includes() {
-        //General
-        include_once MAKEREM_ABSPATH . 'inc/acf.php';
-
+        null;
     }
 
 
@@ -182,8 +180,7 @@ class makeReminder
 
 
 add_action('init', function(){
-    $reminders = new makeReminder();
-    $reminders->send_reminder_email();
+    new makeReminder();
 });
 
 
