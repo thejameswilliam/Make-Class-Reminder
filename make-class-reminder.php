@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Make Santa Fe - Teacher Reminders
  * Plugin URI:https://mind.sh/are
- * Description: A plugin that integrates with Tribe Events Calendar to send reminders to teachers
+ * Description: A plugin that integrates with Mindshare Events Calendar to send reminders to teachers
  * Version: 0.2.1
  * Author: Mindshare Labs, Inc
  * Author URI: https://mind.sh/are
