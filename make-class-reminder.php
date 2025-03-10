@@ -56,7 +56,7 @@ class makeReminder
         }
     }
     private function includes() {
-        null;
+        include_once MAKEREM_ABSPATH . 'inc/acf.php';
     }
 
 
