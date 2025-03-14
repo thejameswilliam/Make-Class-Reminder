@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Make Santa Fe - Teacher Reminders
+ * Plugin Name: Make Santa Fe - Email Reminders
  * Plugin URI:https://mind.sh/are
- * Description: A plugin that integrates with Mindshare Events Calendar to send reminders to teachers
- * Version: 0.2.1
+ * Description: A plugin that integrates with Mindshare Events Calendar to send reminders to instructors and event attendees
+ * Version: 1.2.1
  * Author: Mindshare Labs, Inc
  * Author URI: https://mind.sh/are
  */
@@ -58,6 +58,7 @@ class makeReminder
         include_once MAKEREM_ABSPATH . 'inc/acf.php';
         include_once MAKEREM_ABSPATH . 'inc/post_types.php';
         include_once MAKEREM_ABSPATH . 'inc/metabox.php';
+        include_once MAKEREM_ABSPATH . 'inc/email_log.php';
     }
 
 
@@ -67,19 +68,22 @@ class makeReminder
             'numberposts' 	=> -1,					
             'post_type' 	=> 'reminder_emails',	
             'meta_key'		=> 'timing',  	
-            'meta_value'	=> 'three_before'
+            'meta_value'	=> 'three_before',
+            'post_status'	=> 'publish'
         ));
         $emails_to_send['day_of'] = get_posts(array(
             'numberposts' 	=> -1,					
             'post_type' 	=> 'reminder_emails',	
             'meta_key'		=> 'timing',  	
-            'meta_value'	=> 'day_of'
+            'meta_value'	=> 'day_of',
+            'post_status'	=> 'publish'
         ));
         $emails_to_send['day_after'] = get_posts(array(
             'numberposts' 	=> -1,					
             'post_type' 	=> 'reminder_emails',	
             'meta_key'		=> 'timing',  	
-            'meta_value'	=> 'day_after'
+            'meta_value'	=> 'day_after',
+            'post_status'	=> 'publish'
         ));
         
         foreach($emails_to_send as $timing => $emails) :
@@ -288,9 +292,27 @@ class makeReminder
         $headers[] = 'X-Originating-IP: ' . $_SERVER['SERVER_ADDR'];
 
         $message = $this->open_email_container_html($email) . $message . $this->close_email_container_html();
-        wp_mail($to, $subject, $message, $headers);
+        $sent = wp_mail($to, $subject, $message, $headers);
+        if($sent) :
+            $this->log_email($to, $subject,  $message, $email);
+        endif;
+
     }
 
+    private function log_email($to, $subject, $message, $email) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'mind_email_log';
+        $wpdb->insert(
+            $table_name,
+            array(
+                'sent_to' => $to,
+                'email_subject' => $subject,
+                'email_id' => $email->ID,
+                'date_sent' => current_time('mysql'),
+                'email_content' => $message
+            )
+        );
+    }
 
     private function replace_merge_tags($content, $user, $event) {
         $event_start = new DateTimeImmutable(get_post_meta($event->ID, 'event_start_time_stamp', true));
@@ -315,7 +337,21 @@ class makeReminder
 
     }
     public static function activate(){
-        null;
+        //create eail log table in database
+        global $wpdb;
+        $charset_collate = $wpdb->get_charset_collate();
+        $table_name = $wpdb->prefix . 'mind_email_log';
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            sent_to varchar(255) NOT NULL,
+            email_subject varchar(255) NOT NULL,
+            email_id mediumint(9) NOT NULL,
+            date_sent datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+            email_content text NOT NULL,
+            PRIMARY KEY  (id)
+        ) $charset_collate;";
+        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+        dbDelta( $sql );
     }
 
 

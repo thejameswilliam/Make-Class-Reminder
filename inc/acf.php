@@ -1,9 +1,6 @@
 <?php
-
-add_action( 'acf/include_fields', function() {
-	if ( ! function_exists( 'acf_add_local_field_group' ) ) {
-		return;
-	}
+if ( function_exists( 'acf_add_local_field_group' ) ) {
+		
     acf_add_local_field_group( array(
         'key' => 'group_66d76baf5d3fc',
         'title' => 'Event Options',
@@ -279,5 +276,5 @@ add_action( 'acf/include_fields', function() {
 	'description' => '',
 	'show_in_rest' => 0,
 ) );
-} );
+};
 
