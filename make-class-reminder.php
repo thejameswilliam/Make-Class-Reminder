@@ -59,6 +59,7 @@ class makeReminder
         include_once MAKEREM_ABSPATH . 'inc/acf.php';
         include_once MAKEREM_ABSPATH . 'inc/post_types.php';
         include_once MAKEREM_ABSPATH . 'inc/metabox.php';
+        include_once MAKEREM_ABSPATH . 'inc/utilities.php';
     }
 
 
@@ -89,8 +90,20 @@ class makeReminder
 
 
     private function get_event_instructors($event_id) {
-        $post_parent = wp_get_post_parent_id($event_id);
-        $instructors = get_field('instructors', $post_parent);
+        $reminder_email = get_post_meta($event_id, 'reminderEmail', true);
+        $instructors = array();
+        if($reminder_email) {
+            foreach ($reminder_email as $email) {
+                $user = get_user_by('email', $email);
+                if($user) {
+                    $instructors[] = $user;
+                }
+            }
+            return $instructors;
+        } else {
+            $post_parent = wp_get_post_parent_id($event_id);
+            $instructors = get_field('instructors', $post_parent);
+        }
         return $instructors;
     }
 
@@ -106,6 +119,7 @@ class makeReminder
             }
         }
     }
+    
     public function send_attendee_reminder_email($order_id, $product_id) {
         $linked_event = get_post_meta($product_id, 'linked_event', true);
         $linked_occurance = get_post_meta($product_id, 'linked_occurance', true);

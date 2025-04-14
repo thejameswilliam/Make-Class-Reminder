@@ -32,7 +32,18 @@ class mindReminderAdmin {
 
 
   static function display_merg_tag_metabox($post) {
-   
+    echo '<div class="make-reminder-merge-tags">';
+      echo '<h3>Possible Merge Tags</h3>';
+      echo '<p>Use these merge tags in your email content to personalize the email.</p>';
+      echo '<ul>';
+        echo '<li>{first_name} - The first name of the recipient</li>';
+        echo '<li>{last_name} - The last name of the recipient</li>';
+        echo '<li>{email} - The email address of the recipient</li>';
+        echo '<li>{event_name} - The name of the event</li>';
+        echo '<li>{event_date} - The date of the event</li>';
+        echo '<li>{event_time} - The time of the event</li>';
+      echo '</ul>';
+    echo '</div>';
   }
 
 
