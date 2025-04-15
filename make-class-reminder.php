@@ -153,7 +153,7 @@ class makeReminder
     }
 
     private function get_event_instructors($event_id) {
-        $reminder_email = get_post_meta($event_id, 'reminderEmail', true);
+        $reminder_email = get_post_meta($event_id, 'instructorEmail', true);
         $instructors = array();
         if($reminder_email) {
             foreach ($reminder_email as $email) {
@@ -175,7 +175,7 @@ class makeReminder
         $attendees = get_post_meta($post_parent,'attendees',true);
         $attendees = $attendees[$occurance_id];
         $to_send = array();
-        foreach($attendees as $attendee) {
+        foreach($attendees as $attendee) { 
             $to_send[$attendee['user_id']] = get_user($attendee['user_id']);
         }
         return $to_send;
