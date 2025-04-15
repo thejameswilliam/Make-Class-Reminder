@@ -59,6 +59,7 @@ class makeReminder
         include_once MAKEREM_ABSPATH . 'inc/post_types.php';
         include_once MAKEREM_ABSPATH . 'inc/metabox.php';
         include_once MAKEREM_ABSPATH . 'inc/email_log.php';
+        include_once MAKEREM_ABSPATH . 'inc/utilities.php';
     }
 
 
@@ -151,11 +152,22 @@ class makeReminder
         return $events->get_posts();
     }
 
+    private function get_event_instructors($event_id) {
+        $reminder_email = get_post_meta($event_id, 'reminderEmail', true);
+        $instructors = array();
+        if($reminder_email) {
+            foreach ($reminder_email as $email) {
+                $user = get_user_by('email', $email);
+                if($user) {
+                    $instructors[] = $user;
+                }
+            }
+            return $instructors;
+        } else {
+            $post_parent = wp_get_post_parent_id($event_id);
+            $instructors = get_field('instructors', $post_parent);
+        }
 
-
-    private function get_event_instructors($occurance_id) {
-        $post_parent = wp_get_post_parent_id($occurance_id);
-        $instructors = (get_field('instructors', $post_parent) ? get_field('instructors', $post_parent) : array());
         return $instructors;
     }
     private function get_event_attendees($occurance_id) {
@@ -167,6 +179,35 @@ class makeReminder
             $to_send[$attendee['user_id']] = get_user($attendee['user_id']);
         }
         return $to_send;
+    }
+     
+    public function send_attendee_reminder_email($order_id, $product_id) {
+        $linked_event = get_post_meta($product_id, 'linked_event', true);
+        $linked_occurance = get_post_meta($product_id, 'linked_occurance', true);
+
+        if($linked_event) :
+            $event = get_post($linked_event);
+
+            $attendees = get_post_meta($linked_event, 'attendees', true);
+
+            if($attendees[$linked_occurance]) {
+                foreach ($attendees[$linked_occurance] as $attendee) {
+                    if(function_exists('wc_get_order')) {
+                        $order_id = $attendee['order_id'];
+                        $user_id = $attendee['user_id'];
+                        $checked_in = $attendee['checked_in'];
+                        $order = wc_get_order($order_id);
+                        $user = get_userdata($user_id);
+
+                        //if order is compelte and user is not checked in
+                        if($order->get_status() == 'completed' && !$checked_in) {
+                            $this->send_attendee_email($user, $linked_occurance);
+                        }
+                    }
+                    
+                }
+            }
+        endif;
     }
 
     private function open_email_container_html($email) {

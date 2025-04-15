@@ -32,6 +32,7 @@ class mindReminderAdmin {
 
 
   static function display_merg_tag_metabox($post) {
+
     echo '<div class="metabox mind-reminder-merge-tags">';
       echo '<h3>Merge Tags</h3>';
       echo '<p>Use these merge tags in your email content to personalize the email.</p>';
