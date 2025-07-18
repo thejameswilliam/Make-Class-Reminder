@@ -11,7 +11,7 @@ if ( function_exists( 'acf_add_local_field_group' ) ) {
                 'name' => 'instructors',
                 'aria-label' => '',
                 'type' => 'user',
-                'instructions' => '',
+                'instructions' => 'This will OVERRIDE the instructor attached to the sub event. It is best to use this field when the instructor is the SAME FOR ALL sub events.',
                 'required' => 0,
                 'conditional_logic' => 0,
                 'wrapper' => array(
