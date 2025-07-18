@@ -60,6 +60,7 @@ class makeReminder
         include_once MAKEREM_ABSPATH . 'inc/metabox.php';
         include_once MAKEREM_ABSPATH . 'inc/email_log.php';
         include_once MAKEREM_ABSPATH . 'inc/utilities.php';
+        include_once MAKEREM_ABSPATH . 'inc/woocommerce.php';
     }
 
 

@@ -50,3 +50,62 @@ function mindevents_get_instructors() {
 	}
 
 }
+
+
+
+add_action('update_post_meta', 'make_sync_sub_event_instructor', 9999, 4);
+
+function make_sync_sub_event_instructor($meta_id, $object_id, $meta_key, $_meta_value) {
+	$post_type = get_post_type($object_id);
+	if(defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+	if(!current_user_can('edit_post', $object_id)) return;
+	if(defined( 'REST_REQUEST' ) && REST_REQUEST ) return;
+	if(wp_is_post_autosave( $object_id )) return;
+	if(wp_is_post_revision( $object_id )) return;
+	if($meta_key != 'instructors') return; // Only run if the meta key is 'instructors'
+	if($post_type != 'events') return;
+
+
+	//get user from id
+	$instructor = get_user_by('id', $_meta_value);
+
+	if($instructor && is_object($instructor)) {
+		$instructorEmail = $instructor->user_email;
+	} else {
+		$instructorEmail = '';
+	}
+	//get all sub events
+	$sub_events = get_posts(array(
+		'meta_query' => array(
+		// 'relation' => 'AND',
+		'start_clause' => array(
+			'key' => 'starttime',
+			'compare' => 'EXISTS',
+		),
+		'date_clause' => array(
+			'key' => 'event_date',
+			'compare' => 'EXISTS',
+		),
+		),
+		'orderby'          => 'meta_value',
+		'meta_key'         => 'event_time_stamp',
+		'meta_type'        => 'DATETIME',
+		'order'            => 'ASC',
+		'post_type'        => 'sub_event',
+		'post_parent'      => $object_id,
+		'suppress_filters' => true,
+		'posts_per_page'   => -1,
+	));
+
+	//if sub events exist
+	if($sub_events) :
+		//loop through sub events
+		foreach($sub_events as $sub_event) :
+			update_post_meta($sub_event->ID, 'instructorEmail', $instructorEmail);
+		endforeach;
+	endif;
+
+
+}
+
+

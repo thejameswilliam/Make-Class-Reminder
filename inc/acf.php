@@ -24,7 +24,7 @@ if ( function_exists( 'acf_add_local_field_group' ) ) {
                     1 => 'administrator',
                 ),
                 'return_format' => 'object',
-                'multiple' => 1,
+                'multiple' => 0,
                 'allow_null' => 0,
                 'allow_in_bindings' => 0,
                 'bidirectional' => 0,
