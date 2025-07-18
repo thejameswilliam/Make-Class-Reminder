@@ -32,7 +32,7 @@ function make_add_upcoming_instructor_classes() {
     ));
 
     if($sub_events->have_posts()) {
-        echo '<div class="upcoming-classes alert alert-info">';
+        echo '<div class="upcoming-classes alert alert-light">';
             echo '<h2>You\'re Teaching the Following Classes</h2>';
             echo '<ul>';
             while($sub_events->have_posts()) {
