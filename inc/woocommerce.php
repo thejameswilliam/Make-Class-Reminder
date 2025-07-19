@@ -34,23 +34,29 @@ function make_add_upcoming_instructor_classes() {
     if($sub_events->have_posts()) {
         echo '<div class="upcoming-classes alert alert-light">';
             echo '<h2>You\'re Teaching the Following Classes</h2>';
-            echo '<ul>';
-            while($sub_events->have_posts()) {
-                $sub_events->the_post();
-                //display all the sub events
-                $event_date = get_post_meta(get_the_ID(), 'event_time_stamp', true);
-                $event_date_formatted = date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($event_date));
-                $event_title = get_the_title((get_post_parent( get_the_id() )));
-                $event_link = get_permalink();
-                echo '<li class="mb-1">';
-                    echo '<a href="' . esc_url($event_link) . '">' . esc_html($event_title) . '</a> - ' . esc_html($event_date_formatted);
-                    //add to calendar link
-                    echo '<span class="event-meta ps-3 text-endadd-to-calendar-dropdown mt-3">';
-                        echo make_get_event_add_to_calendar_links(get_the_id());
-                    echo '</span>';
-                echo '</li>'; 
-            }
-            echo '</ul>';
+            echo '<div class="table-responsive">';
+                echo '<table class="table table-striped align-middle">';
+                    echo '<thead><tr>';
+                        echo '<th>Class</th>';
+                        echo '<th>Date & Time</th>';
+                        echo '<th>Add to Calendar</th>';
+                    echo '</tr></thead>';
+                    echo '<tbody>';
+                    while($sub_events->have_posts()) {
+                        $sub_events->the_post();
+                        $event_date = get_post_meta(get_the_ID(), 'event_time_stamp', true);
+                        $event_date_formatted = date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($event_date));
+                        $event_title = get_the_title(get_post_parent(get_the_ID()));
+                        $event_link = get_permalink();
+                        echo '<tr>';
+                            echo '<td><a href="' . esc_url($event_link) . '">' . esc_html($event_title) . '</a></td>';
+                            echo '<td>' . esc_html($event_date_formatted) . '</td>';
+                            echo '<td><span class="event-meta add-to-calendar-dropdown">' . make_get_event_add_to_calendar_links(get_the_ID()) . '</span></td>';
+                        echo '</tr>';
+                    }
+                    echo '</tbody>';
+                echo '</table>';
+            echo '</div>';
         echo '</div>';
     }
    
