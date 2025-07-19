@@ -45,7 +45,7 @@ function make_add_upcoming_instructor_classes() {
                     while($sub_events->have_posts()) {
                         $sub_events->the_post();
                         $event_date = get_post_meta(get_the_ID(), 'event_time_stamp', true);
-                        $event_date_formatted = date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($event_date));
+                        $event_date_formatted = date_i18n('l, ' . get_option('date_format') . ' ' . get_option('time_format'), strtotime($event_date));
                         $event_title = get_the_title(get_post_parent(get_the_ID()));
                         $event_link = get_permalink();
                         echo '<tr>';
