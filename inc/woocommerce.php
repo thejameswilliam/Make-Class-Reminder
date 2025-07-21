@@ -6,7 +6,6 @@ add_action('woocommerce_account_dashboard', 'make_add_upcoming_instructor_classe
 function make_add_upcoming_instructor_classes() {
     
     $user_id = get_current_user_id();
-    $user_email = get_userdata($user_id)->user_email;
     $now = current_time('Y-m-d H:i:s');
     $sub_events = new WP_Query(array(
         'post_type'      => 'sub_event',
@@ -24,8 +23,8 @@ function make_add_upcoming_instructor_classes() {
                 'type'    => 'DATETIME'
             ),
             array(
-                'key' => 'instructorEmail',
-                'value' => $user_email,
+                'key' => 'instructorID',
+                'value' => $user_id,
                 'compare' => '='
             ),
         ),

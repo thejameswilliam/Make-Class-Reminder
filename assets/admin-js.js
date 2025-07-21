@@ -7,7 +7,7 @@
 
 
 
-    $(document).on('focus', '#instructorEmail', function() {
+    $(document).on('focus', '#instructorID', function() {
         if (!$(this).data('ui-autocomplete')) { // Prevent reinitializing autocomplete
             $(this).autocomplete({
                 source: function(request, response) {
@@ -22,7 +22,7 @@
                             response($.map(data, function(data) {
                                 return {
                                     label: data.name,
-                                    value: data.email
+                                    value: data.id
                                 };
                             }));
                         }

@@ -154,19 +154,16 @@ class makeReminder
     }
 
     private function get_event_instructors($event_id) {
-        $reminder_email = get_post_meta($event_id, 'instructorEmail', true);
+        $reminder_email = get_post_meta($event_id, 'instructorID', true);
         $instructors = array();
         if($reminder_email) {
             foreach ($reminder_email as $email) {
-                $user = get_user_by('email', $email);
+                $user = get_user_by('id', $email);
                 if($user) {
                     $instructors[] = $user;
                 }
             }
             return $instructors;
-        } else {
-            $post_parent = wp_get_post_parent_id($event_id);
-            $instructors = get_field('instructors', $post_parent);
         }
 
         return $instructors;

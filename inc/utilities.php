@@ -3,8 +3,8 @@
 add_filter('mindevents_sub_event_form', function($html, $values, $sub_event_id, $parentID) {
 
 	$html .= '<div class="form-section">';
-		$html .= '<p class="label"><label for="instructorEmail">Instructor</label></p>';
-		$html .= '<input type="email" name="instructorEmail" id="instructorEmail" value="' . (isset($values['instructorEmail']) ? $values['instructorEmail'][0] : '') . '" placeholder="">';
+		$html .= '<p class="label"><label for="instructorID">Instructor</label></p>';
+		$html .= '<input type="email" name="instructorID" id="instructorID" value="' . (isset($values['instructorID']) ? $values['instructorID'][0] : '') . '" placeholder="">';
 	$html .= '</div>';
 
     return $html;
@@ -70,9 +70,9 @@ function make_sync_sub_event_instructor($meta_id, $object_id, $meta_key, $_meta_
 	$instructor = get_user_by('id', $_meta_value);
 
 	if($instructor && is_object($instructor)) {
-		$instructorEmail = $instructor->user_email;
+		$instructorID = $instructor->ID;
 	} else {
-		$instructorEmail = '';
+		$instructorID = '';
 	}
 	//get all sub events
 	$sub_events = get_posts(array(
@@ -101,7 +101,7 @@ function make_sync_sub_event_instructor($meta_id, $object_id, $meta_key, $_meta_
 	if($sub_events) :
 		//loop through sub events
 		foreach($sub_events as $sub_event) :
-			update_post_meta($sub_event->ID, 'instructorEmail', $instructorEmail);
+			update_post_meta($sub_event->ID, 'instructorID', $instructorID);
 		endforeach;
 	endif;
 
