@@ -50,7 +50,7 @@ function make_add_upcoming_instructor_classes() {
                         echo '<tr>';
                             echo '<td><a href="' . esc_url($event_link) . '">' . esc_html($event_title) . '</a></td>';
                             echo '<td>' . esc_html($event_date_formatted) . '</td>';
-                            echo '<td><span class="event-meta add-to-calendar-dropdown">' . make_get_event_add_to_calendar_links(get_the_ID()) . '</span></td>';
+                            echo '<td>' . make_get_event_add_to_calendar_links(get_the_ID()) . '</td>';
                         echo '</tr>';
                     }
                     echo '</tbody>';
