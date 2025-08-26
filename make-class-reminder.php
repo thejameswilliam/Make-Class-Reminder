@@ -354,9 +354,10 @@ class makeReminder
     }
 
     private function replace_merge_tags($content, $user, $event) {
+        $post_parent = get_post_parent($event->ID);
         $event_start = new DateTimeImmutable(get_post_meta($event->ID, 'event_start_time_stamp', true));
         $event_end = new DateTimeImmutable(get_post_meta($event->ID, 'event_end_time_stamp', true));
-        $content = str_replace('{event_title}', get_the_title(get_post_parent($event->ID)), $content);
+        $content = str_replace('{event_title}', get_the_title($post_parent->ID), $content);
         $content = str_replace('{first_name}', $user->first_name, $content);
         $content = str_replace('{last_name}', $user->last_name, $content);
         $content = str_replace('{email}', $user->user_email, $content);
@@ -364,8 +365,8 @@ class makeReminder
         $content = str_replace('{end_date}', $event_end->format(get_option( 'date_format' )), $content);
         $content = str_replace('{start_time}', $event_start->format(get_option( 'time_format' )), $content);
         $content = str_replace('{end_time}', $event_end->format(get_option( 'time_format' )), $content);
-        $content = str_replace('{excerpt}', get_the_excerpt(get_post_parent($event->ID)), $content);
-        $content = str_replace('{event_link}', get_the_permalink($event->ID), $content);
+        $content = str_replace('{excerpt}', get_the_excerpt($post_parent->ID), $content);
+        $content = str_replace('{event_link}', get_the_permalink($post_parent->ID), $content);
         return html_entity_decode($content);
     }
 
