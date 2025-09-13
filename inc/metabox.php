@@ -8,7 +8,6 @@ class mindReminderAdmin {
 
     add_action( 'add_meta_boxes', array($this, 'add_email_metaboxes' ));
 
-    add_action( 'save_post_events', array($this, 'save_meta_info'), 10, 2 );
 
 
 	}
@@ -53,14 +52,6 @@ class mindReminderAdmin {
 
 
 
-  static function save_meta_info( $post_id, $post ) {
-
-    /* Make sure this is our post type. */
-    if($post->post_type != 'reminder_emails')
-      return $post_id;
-
-
-  }
 
 
 }//end of class

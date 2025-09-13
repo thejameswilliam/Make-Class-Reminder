@@ -101,7 +101,10 @@ function make_sync_sub_event_instructor($meta_id, $object_id, $meta_key, $_meta_
 	if($sub_events) :
 		//loop through sub events
 		foreach($sub_events as $sub_event) :
-			update_post_meta($sub_event->ID, 'instructorID', $instructorID);
+			//only update if sub event does not already have an instructor
+			if(!get_post_meta($sub_event->ID, 'instructorID', true)) {
+				update_post_meta($sub_event->ID, 'instructorID', $instructorID);
+			}
 		endforeach;
 	endif;
 
