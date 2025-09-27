@@ -135,6 +135,8 @@ class makeReminder
 
 
     private function get_events($date, $connected_events) {
+        //change datetime to Y-m-d
+        $date = date('Y-m-d', strtotime($date));
         $args = array(
             'post_type' => 'sub_event',
             'posts_per_page' => -1,
@@ -142,9 +144,9 @@ class makeReminder
             'meta_query' => array(
                 'relation' => 'AND',
                 array(
-                    'key' => 'event_date',
+                    'key' => 'event_start_time_stamp',
                     'value' => $date,
-                    'compare' => '==',
+                    'compare' => '=',
                     'type' => 'DATE'
                 ),
             )
@@ -154,9 +156,26 @@ class makeReminder
     }
 
     private function get_event_instructors($event_id) {
-        $reminder_email = get_post_meta($event_id, 'instructorID', true);
-        $instructors = array();
-        if($reminder_email) {
+        $reminder_emails = get_post_meta($event_id, 'instructorID', true);
+
+        //if there is no instructor assigned, get post parent instructor
+        if(!$reminder_emails) {
+            $post_parent = wp_get_post_parent_id($event_id);
+            $reminder_emails = get_post_meta($post_parent, 'instructorID', true);
+        }
+       
+        //if there is still no instructor, return empty array
+        if(!$reminder_emails) {
+            return array();
+        }
+
+        if(!is_array($reminder_emails)) {
+            $reminder_email = array($reminder_emails);
+        } else {
+            $reminder_email = $reminder_emails;
+        }  
+
+        if($reminder_emails) {
             foreach ($reminder_email as $email) {
                 $user = get_user_by('id', $email);
                 if($user) {
@@ -164,13 +183,16 @@ class makeReminder
                 }
             }
             return $instructors;
+        } else {
+            return array();
         }
-
-        return $instructors;
     }
     private function get_event_attendees($occurance_id) {
         $post_parent = wp_get_post_parent_id($occurance_id);
         $attendees = get_post_meta($post_parent,'attendees',true);
+        if(!$attendees || !is_array($attendees) || count($attendees) == 0) {
+            return array();
+        }
         $attendees = $attendees[$occurance_id];
         $to_send = array();
         foreach($attendees as $attendee) { 

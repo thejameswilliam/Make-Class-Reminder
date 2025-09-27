@@ -10,13 +10,13 @@ function make_add_upcoming_instructor_classes() {
         'post_type'      => 'sub_event',
         'posts_per_page' => -1,
         'orderby'        => 'meta_value',
-        'meta_key'       => 'event_time_stamp',
+        'meta_key'       => 'event_start_time_stamp',
         'meta_type'      => 'DATETIME',
         'order'          => 'ASC',
         'meta_query'     => array(
             'relation' => 'AND',
             array(
-                'key'     => 'event_time_stamp',
+                'key'     => 'event_start_time_stamp',
                 'value'   => $now,
                 'compare' => '>=',
                 'type'    => 'DATETIME'
