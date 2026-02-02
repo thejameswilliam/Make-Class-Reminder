@@ -52,14 +52,15 @@ function make_add_upcoming_instructor_classes() {
                         $linked_product = get_post_meta(get_the_ID(), 'linked_product', true);
                         $woocommerce_product = wc_get_product($linked_product);
                         $product_stock = intval($woocommerce_product ? $woocommerce_product->get_stock_quantity() : 0);
-                        $starting_ticket_stock = intval(get_post_meta(get_the_ID(), 'ticket_stock', true));
+                        $starting_ticket_stock = (get_post_meta(get_the_ID(), 'ticket_stock', true) ? intval(get_post_meta(get_the_ID(), 'ticket_stock', true)) : 0);
+                        $tickets_sold = $starting_ticket_stock - $product_stock;
                         $event_parent = get_post_parent(get_the_ID());
 
                         echo '<tr>';
                             echo '<td class="text-nowrap"><a href="' . esc_url(get_permalink($event_parent)) . '">' . esc_html($event_title) . '</a></td>';
                             echo '<td class="text-nowrap">' . esc_html($event_date_formatted) . '</td>';
                             echo '<td class="text-nowrap">' . make_get_event_add_to_calendar_links(get_the_ID()) . '</td>';
-                            echo '<td class="text-nowrap">Tickets Sold: ' . ($starting_ticket_stock - $product_stock) . '</td>';
+                            echo '<td class="text-nowrap">Tickets Sold: ' . esc_html($tickets_sold) . '</td>';
                         echo '</tr>';
                     }
                     echo '</tbody>';
