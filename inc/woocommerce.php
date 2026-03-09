@@ -52,10 +52,6 @@ function make_add_upcoming_instructor_classes() {
 
                         $event_title = get_the_title(get_post_parent(get_the_ID()));
                         $linked_product = get_post_meta(get_the_ID(), 'linked_product', true);
-                        $woocommerce_product = wc_get_product($linked_product);
-                        $product_stock = intval($woocommerce_product ? $woocommerce_product->get_stock_quantity() : 0);
-                        $starting_ticket_stock = (get_post_meta(get_the_ID(), 'ticket_stock', true) ? intval(get_post_meta(get_the_ID(), 'ticket_stock', true)) : 0);
-                        $tickets_sold = $starting_ticket_stock - $product_stock;
                         $event_parent = get_post_parent(get_the_ID());
                         
                         $linked_product = get_post_meta(get_the_ID(), 'linked_product', true);
