@@ -43,20 +43,40 @@ function make_add_upcoming_instructor_classes() {
                     echo '<tbody>';
                     while($sub_events->have_posts()) {
                         $sub_events->the_post();
-                        $event_date = get_post_meta(get_the_ID(), 'event_time_stamp', true);
-                        $event_date_formatted = date_i18n('l, ' . get_option('date_format') . ' ' . get_option('time_format'), strtotime($event_date));
+                        $event_date = get_post_meta(get_the_ID(), 'event_start_time_stamp', true);
+                        $event_date_formatted = date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($event_date));
                         $event_title = get_the_title(get_post_parent(get_the_ID()));
-                        $linked_product = get_post_meta(get_the_ID(), 'linked_product', true);
-                        $woocommerce_product = wc_get_product($linked_product);
-                        $product_stock = $woocommerce_product ? $woocommerce_product->get_stock_quantity() : 0;
-                        $starting_ticket_stock = get_post_meta(get_the_ID(), 'ticket_stock', true);
                         $event_parent = get_post_parent(get_the_ID());
+                        
+                        $linked_product = get_post_meta(get_the_ID(), 'linked_product', true);
+                        if ( $linked_product ) {
+                           $orders = make_get_orders_ids_by_product_id( $linked_product);
 
+                            $total_attendees = 0;
+                            foreach ( $orders as $order_id ) {
+                                $order = wc_get_order( $order_id );
+                                if ( ! $order ) {
+                                    continue;
+                                }
+                                foreach ( $order->get_items() as $item ) {
+                                    if ( (int) $item->get_product_id() === (int) $linked_product ) {
+                                        // mapi_write_log('Found matching product in order #' . $order->get_id() . ': ' . $item->get_name() . ' (Quantity: ' . $item->get_quantity() . ')');
+                                        $total_attendees += (int) $item->get_quantity();
+                                    }
+
+                                }
+                            }
+                            $total_attendees = 'Total Attendees: ' . $total_attendees;
+                        } else {
+                            $total_attendees = 'N/A';
+                        }
+            
+                        
                         echo '<tr>';
                             echo '<td><a href="' . esc_url(get_permalink($event_parent)) . '">' . esc_html($event_title) . '</a></td>';
                             echo '<td>' . esc_html($event_date_formatted) . '</td>';
                             echo '<td>' . make_get_event_add_to_calendar_links(get_the_ID()) . '</td>';
-                            echo '<td>Tickets Sold: ' . ($starting_ticket_stock - $product_stock) . '</td>';
+                            echo '<td class="text-nowrap">' . esc_html( $total_attendees ) . '</td>';
                         echo '</tr>';
                     }
                     echo '</tbody>';
@@ -65,4 +85,17 @@ function make_add_upcoming_instructor_classes() {
         echo '</div>';
     }
    
+}
+
+
+function make_get_orders_ids_by_product_id( $product_id, $statuses = array('wc-completed') ) {
+    global $wpdb;
+    $order_ids = $wpdb->get_col( $wpdb->prepare( "
+        SELECT DISTINCT order_items.order_id
+        FROM {$wpdb->prefix}woocommerce_order_items as order_items
+        LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta as meta ON order_items.order_item_id = meta.order_item_id
+        WHERE meta.meta_key = '_product_id' 
+        AND meta.meta_value = %d
+    ", $product_id ) );
+    return $order_ids;
 }
