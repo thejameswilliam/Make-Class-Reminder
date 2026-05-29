@@ -15,6 +15,7 @@ class makeReminder
 
     public function __construct() {
         $this->userId = get_current_user_id();
+  
         global $wpdb;
         if (!defined('MAKEREM_PLUGIN_FILE')) {
             define('MAKEREM_PLUGIN_FILE', __FILE__);
@@ -32,7 +33,7 @@ class makeReminder
         add_action('wp_loaded', array($this, 'schedule_daily_reminder'));
         add_action('send_reminder_emails', array($this, 'send_reminder_emails'));
         add_action('mtr_reservation_created', array($this, 'send_reservation_confirmation_email'), 10, 3);
-        add_action('init', array($this, 'maybe_upgrade_db'));
+        add_action('wp_loaded', array($this, 'maybe_upgrade_db'));
     }
 
     public function add_cron_schedules($schedules) {
@@ -61,10 +62,12 @@ class makeReminder
     }
 
     public function maybe_upgrade_db() {
+        mapi_write_log("Checking if DB upgrade is needed...");
         $installed = get_option('makerem_db_version', '1.0.0');
-        if (version_compare($installed, '1.5.0', '<')) {
+        mapi_write_log("Installed DB version: $installed");
+        if (version_compare($installed, '1.5.1', '<')) {
             self::activate();
-            update_option('makerem_db_version', '1.5.0');
+            update_option('makerem_db_version', '1.5.1');
         }
     }
 
@@ -198,9 +201,12 @@ class makeReminder
         if(!$attendees || !is_array($attendees) || count($attendees) == 0) {
             return array();
         }
+        if (!isset($attendees[$occurance_id]) || !is_array($attendees[$occurance_id])) {
+            return array();
+        }
         $attendees = $attendees[$occurance_id];
         $to_send = array();
-        foreach($attendees as $attendee) { 
+        foreach($attendees as $attendee) {
             $to_send[$attendee['user_id']] = get_user($attendee['user_id']);
         }
         return $to_send;
@@ -578,6 +584,13 @@ class makeReminder
         ) $charset_collate;";
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);
+
+        // dbDelta() silently skips adding columns to existing tables; add explicitly if missing.
+        $col = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'reference_id'");
+        if (empty($col)) {
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN reference_id varchar(255) NOT NULL DEFAULT ''");
+            $wpdb->query("ALTER TABLE $table_name ADD KEY email_dedup (email_id, sent_to(100), reference_id(100))");
+        }
     }
 
 
