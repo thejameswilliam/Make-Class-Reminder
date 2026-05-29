@@ -19,7 +19,7 @@ class makeReminder
         if (!defined('MAKEREM_PLUGIN_FILE')) {
             define('MAKEREM_PLUGIN_FILE', __FILE__);
         }
-        //Define all the constants 
+        //Define all the constants
         $this->define('MAKEREM_ABSPATH', dirname(MAKEREM_PLUGIN_FILE) . '/');
         $this->define('MAKEREM_URL', plugin_dir_url(__FILE__));
         $this->define('MAKEREM_PLUGIN_VERSION', '1.4.0');
@@ -28,17 +28,43 @@ class makeReminder
         $this->define('MAKEREM_AJAX_PREPEND', 'makesantafe_');
 
         $this->includes();
-        add_action('wp_loaded', array($this, 'schedule_daily_reminder')); //on load of wordpress, schedule the daily reminder
-        add_action('send_reminder_emails', array($this, 'send_reminder_emails')); //on action send_reminder_emails, run the function send_reminder_emails
-
-
+        add_filter('cron_schedules', array($this, 'add_cron_schedules'));
+        add_action('wp_loaded', array($this, 'schedule_daily_reminder'));
+        add_action('send_reminder_emails', array($this, 'send_reminder_emails'));
+        add_action('mtr_reservation_created', array($this, 'send_reservation_confirmation_email'), 10, 3);
+        add_action('init', array($this, 'maybe_upgrade_db'));
     }
 
-    // Schedule the daily event if it is not already scheduled
-    public function schedule_daily_reminder() {  
-        
-        if (!wp_next_scheduled('send_reminder_emails')) {
-            wp_schedule_event(time(), 'daily', 'send_reminder_emails');
+    public function add_cron_schedules($schedules) {
+        $schedules['makerem_five_minutes'] = array(
+            'interval' => 5 * MINUTE_IN_SECONDS,
+            'display'  => __('Every 5 Minutes', 'make-class-reminder'),
+        );
+        return $schedules;
+    }
+
+    // Schedule the 5-minute cron, migrating away from the old daily schedule if needed
+    public function schedule_daily_reminder() {
+        $existing = wp_next_scheduled('send_reminder_emails');
+
+        if ($existing) {
+            $event = wp_get_scheduled_event('send_reminder_emails');
+            if (!$event || 'makerem_five_minutes' !== $event->schedule) {
+                wp_unschedule_event($existing, 'send_reminder_emails');
+                $existing = false;
+            }
+        }
+
+        if (!$existing) {
+            wp_schedule_event(time(), 'makerem_five_minutes', 'send_reminder_emails');
+        }
+    }
+
+    public function maybe_upgrade_db() {
+        $installed = get_option('makerem_db_version', '1.0.0');
+        if (version_compare($installed, '1.5.0', '<')) {
+            self::activate();
+            update_option('makerem_db_version', '1.5.0');
         }
     }
 
@@ -65,71 +91,50 @@ class makeReminder
 
 
     public function send_reminder_emails() {
-        //get all reminder emails
-        $emails_to_send['three_before'] = get_posts(array(
-            'numberposts' 	=> -1,					
-            'post_type' 	=> 'reminder_emails',	
-            'meta_key'		=> 'timing',  	
-            'meta_value'	=> 'three_before',
-            'post_status'	=> 'publish'
-        ));
-        $emails_to_send['day_of'] = get_posts(array(
-            'numberposts' 	=> -1,					
-            'post_type' 	=> 'reminder_emails',	
-            'meta_key'		=> 'timing',  	
-            'meta_value'	=> 'day_of',
-            'post_status'	=> 'publish'
-        ));
-        $emails_to_send['day_after'] = get_posts(array(
-            'numberposts' 	=> -1,					
-            'post_type' 	=> 'reminder_emails',	
-            'meta_key'		=> 'timing',  	
-            'meta_value'	=> 'day_after',
-            'post_status'	=> 'publish'
-        ));
-        
-        foreach($emails_to_send as $timing => $emails) :
-            if(count($emails) > 0) :
-                if($timing == 'three_before') {
-                    $date = date('Y-m-d', strtotime('+2 days'));
-                } elseif($timing == 'day_of') {
-                    $date = date('Y-m-d');
-                } elseif($timing == 'day_after') {
-                    $date = date('Y-m-d', strtotime('-1 days'));
-                }
-                //loop through events and send emails
-                foreach($emails as $email) :
-                    $connected_events = get_field('connected_events', $email->ID);
-                    $events = $this->get_events($date, $connected_events);
-                    $recipient = get_field('recipient', $email->ID);
-                    if(count($events) > 0) :
-                        foreach( $events as $event) :
-                            $to_send_to_users = array();
-                            if($recipient == 'instructors') :
-                                $to_send_to_users = $this->get_event_instructors($event->ID);
-                            elseif($recipient == 'attendees') :
-                                $to_send_to_users = $this->get_event_attendees($event->ID);
-                            elseif($recipient == 'both') :
-                                $instructors = ($this->get_event_instructors($event->ID) ? $this->get_event_instructors($event->ID) : array());
-                                $attendees = ($this->get_event_attendees($event->ID) ? $this->get_event_attendees($event->ID) : array());
-                                $to_send_to_users = array_merge($instructors, $attendees);
-                            
-                            endif; 
-                            if(count($to_send_to_users) > 0) :
-                                foreach($to_send_to_users as $user) :
-                                    $this->send_email($user, $email, $event);
-                                endforeach; //end foreach users
-                            endif; //end if to_send_to_users
-                        endforeach; //end foreach events
-                    endif; //end if count emails
+        $timing_map = array(
+            'three_before' => date('Y-m-d', strtotime('+2 days')),
+            'day_of'       => date('Y-m-d'),
+            'day_after'    => date('Y-m-d', strtotime('-1 days')),
+        );
 
+        foreach ($timing_map as $timing => $date) :
+            $emails = get_posts(array(
+                'numberposts' => -1,
+                'post_type'   => 'reminder_emails',
+                'meta_key'    => 'timing',
+                'meta_value'  => $timing,
+                'post_status' => 'publish',
+            ));
 
+            if (empty($emails)) continue;
 
-                endforeach; //end foreach events
-            endif; //end if count emails
+            foreach ($emails as $email) :
+                $connected_events = get_field('connected_events', $email->ID);
+                $events    = $this->get_events($date, $connected_events);
+                $recipient = get_field('recipient', $email->ID);
 
+                if (empty($events)) continue;
 
+                foreach ($events as $event) :
+                    $to_send_to_users = array();
+                    if ($recipient == 'instructors') :
+                        $to_send_to_users = $this->get_event_instructors($event->ID);
+                    elseif ($recipient == 'attendees') :
+                        $to_send_to_users = $this->get_event_attendees($event->ID);
+                    elseif ($recipient == 'both') :
+                        $instructors      = $this->get_event_instructors($event->ID) ?: array();
+                        $attendees        = $this->get_event_attendees($event->ID) ?: array();
+                        $to_send_to_users = array_merge($instructors, $attendees);
+                    endif;
+
+                    foreach ($to_send_to_users as $user) :
+                        $this->send_email($user, $email, $event);
+                    endforeach;
+                endforeach;
+            endforeach;
         endforeach;
+
+        $this->send_reservation_day_before_emails();
     }
 
 
@@ -334,43 +339,201 @@ class makeReminder
 
 
 
-    private function send_email($user, $email, $event) {
-        $to = $user->user_email;
-        $from = get_field('from_email',$email->ID);
-        $reply_to = get_field('reply_to_email',$email->ID);
-        $subject = $this->replace_merge_tags(get_field('subject',$email->ID), $user, $event);
-        $message = $this->replace_merge_tags(apply_filters('the_content', $email->post_content), $user, $event);
-        
-        $headers[] = 'Content-Type: text/html; charset=UTF-8';
-        $headers[] = 'From: Make Santa Fe <' . $from . '>';
-        $headers[] = ($reply_to ? 'Reply-To: ' . $reply_to : 'Reply-To: ' . $from);
-        $headers[] = 'MIME-Version: 1.0';
-        $headers[] = 'Content-Type: text/html; charset=ISO-8859-1';
-        $headers[] = 'X-Sender: ' . get_bloginfo('name') . ' <' . get_bloginfo('admin_email') . '>';
-        $headers[] = 'X-Priority: 1';
-        $headers[] = 'Importance: High';
-        $headers[] = 'X-Mailer: PHP/' . phpversion();
-        $headers[] = 'X-Originating-IP: ' . $_SERVER['SERVER_ADDR'];
+    // -------------------------------------------------------------------------
+    // Reservation emails
+    // -------------------------------------------------------------------------
 
-        $message = $this->open_email_container_html($email) . $message . $this->close_email_container_html();
-        $sent = wp_mail($to, $subject, $message, $headers);
-        if($sent) :
-            $this->log_email($to, $subject,  $message, $email);
-        endif;
+    public function send_reservation_confirmation_email($reservation, $tool, $user_id) {
+        if (!class_exists('MTR_Reservation_Repository')) return;
 
+        $templates = get_posts(array(
+            'numberposts' => -1,
+            'post_type'   => 'reminder_emails',
+            'meta_key'    => 'email_type',
+            'meta_value'  => 'reservation_confirmation',
+            'post_status' => 'publish',
+        ));
+
+        if (empty($templates)) return;
+
+        $user = get_userdata($user_id);
+        if (!$user) return;
+
+        foreach ($templates as $template) :
+            $connected_tools = get_field('connected_tools', $template->ID);
+            if (!empty($connected_tools) && !in_array($reservation['tool_id'], $connected_tools)) continue;
+
+            $reference_id = 'r_' . $reservation['id'];
+            if ($this->already_sent($template->ID, $user->user_email, $reference_id)) continue;
+
+            $this->send_reservation_email($user, $template, $reservation, $reference_id);
+        endforeach;
     }
 
-    private function log_email($to, $subject, $message, $email) {
+    private function send_reservation_day_before_emails() {
+        if (!class_exists('MTR_Reservation_Repository')) return;
+
+        $templates = get_posts(array(
+            'numberposts' => -1,
+            'post_type'   => 'reminder_emails',
+            'meta_key'    => 'email_type',
+            'meta_value'  => 'reservation_day_before',
+            'post_status' => 'publish',
+        ));
+
+        if (empty($templates)) return;
+
+        $site_tz       = wp_timezone();
+        $tomorrow_start = new DateTimeImmutable('tomorrow midnight', $site_tz);
+        $tomorrow_end   = $tomorrow_start->modify('+1 day');
+        $utc            = new DateTimeZone('UTC');
+        $start_utc      = $tomorrow_start->setTimezone($utc)->format('Y-m-d H:i:s');
+        $end_utc        = $tomorrow_end->setTimezone($utc)->format('Y-m-d H:i:s');
+
+        $repo         = new MTR_Reservation_Repository();
+        $reservations = $repo->query(array(
+            'status'        => array('active'),
+            'starts_after'  => $start_utc,
+            'starts_before' => $end_utc,
+            'limit'         => 500,
+        ));
+
+        if (empty($reservations)) return;
+
+        foreach ($templates as $template) :
+            $connected_tools = get_field('connected_tools', $template->ID);
+
+            foreach ($reservations as $reservation) :
+                if (!empty($connected_tools) && !in_array($reservation['tool_id'], $connected_tools)) continue;
+
+                $user = get_userdata($reservation['user_id']);
+                if (!$user) continue;
+
+                $reference_id = 'r_' . $reservation['id'];
+                if ($this->already_sent_today($template->ID, $user->user_email, $reference_id)) continue;
+
+                $this->send_reservation_email($user, $template, $reservation, $reference_id);
+            endforeach;
+        endforeach;
+    }
+
+    private function send_reservation_email($user, $email_template, $reservation, $reference_id) {
+        $to       = $user->user_email;
+        $from     = get_field('from_email', $email_template->ID);
+        $reply_to = get_field('reply_to_email', $email_template->ID);
+        $subject  = $this->replace_reservation_merge_tags(get_field('subject', $email_template->ID), $user, $reservation);
+        $message  = $this->replace_reservation_merge_tags(apply_filters('the_content', $email_template->post_content), $user, $reservation);
+
+        $headers = array(
+            'Content-Type: text/html; charset=UTF-8',
+            'From: Make Santa Fe <' . $from . '>',
+            ($reply_to ? 'Reply-To: ' . $reply_to : 'Reply-To: ' . $from),
+            'MIME-Version: 1.0',
+            'X-Sender: ' . get_bloginfo('name') . ' <' . get_bloginfo('admin_email') . '>',
+            'X-Priority: 1',
+            'Importance: High',
+            'X-Mailer: PHP/' . phpversion(),
+        );
+
+        $message = $this->open_email_container_html($email_template) . $message . $this->close_email_container_html();
+        $sent    = wp_mail($to, $subject, $message, $headers);
+
+        if ($sent) {
+            $this->log_email($to, $subject, $message, $email_template, $reference_id);
+        }
+    }
+
+    private function replace_reservation_merge_tags($content, $user, $reservation) {
+        $site_tz   = wp_timezone();
+        $utc       = new DateTimeZone('UTC');
+        $start     = (new DateTimeImmutable($reservation['start_utc'], $utc))->setTimezone($site_tz);
+        $end       = (new DateTimeImmutable($reservation['end_utc'], $utc))->setTimezone($site_tz);
+
+        $manage_url = function_exists('wc_get_account_endpoint_url')
+            ? wc_get_account_endpoint_url('tool-reservations')
+            : wc_get_page_permalink('myaccount');
+
+        $content = str_replace('{first_name}',              $user->first_name,                         $content);
+        $content = str_replace('{last_name}',               $user->last_name,                          $content);
+        $content = str_replace('{email}',                   $user->user_email,                         $content);
+        $content = str_replace('{tool_name}',               $reservation['tool_title'],                $content);
+        $content = str_replace('{tool_link}',               $reservation['tool_permalink'],            $content);
+        $content = str_replace('{reservation_date}',        $start->format(get_option('date_format')), $content);
+        $content = str_replace('{start_time}',              $start->format(get_option('time_format')), $content);
+        $content = str_replace('{end_time}',                $end->format(get_option('time_format')),   $content);
+        $tool_notes = function_exists('get_field') ? get_field('mtr_reservation_notes', $reservation['tool_id']) : '';
+        $content = str_replace('{reservation_notes}',       $tool_notes ?: '',                         $content);
+        $content = str_replace('{manage_reservations_link}', $manage_url,                              $content);
+
+        return html_entity_decode($content);
+    }
+
+    private function already_sent($email_id, $to, $reference_id) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mind_email_log';
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table WHERE email_id = %d AND sent_to = %s AND reference_id = %s",
+            $email_id, $to, $reference_id
+        ));
+        return (int) $count > 0;
+    }
+
+    private function already_sent_today($email_id, $to, $reference_id) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mind_email_log';
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table WHERE email_id = %d AND sent_to = %s AND reference_id = %s AND DATE(date_sent) = CURDATE()",
+            $email_id, $to, $reference_id
+        ));
+        return (int) $count > 0;
+    }
+
+    // -------------------------------------------------------------------------
+    // Event emails
+    // -------------------------------------------------------------------------
+
+    private function send_email($user, $email, $event) {
+        $to           = $user->user_email;
+        $reference_id = (string) $event->ID;
+
+        if ($this->already_sent_today($email->ID, $to, $reference_id)) return;
+
+        $from     = get_field('from_email', $email->ID);
+        $reply_to = get_field('reply_to_email', $email->ID);
+        $subject  = $this->replace_merge_tags(get_field('subject', $email->ID), $user, $event);
+        $message  = $this->replace_merge_tags(apply_filters('the_content', $email->post_content), $user, $event);
+
+        $headers = array(
+            'Content-Type: text/html; charset=UTF-8',
+            'From: Make Santa Fe <' . $from . '>',
+            ($reply_to ? 'Reply-To: ' . $reply_to : 'Reply-To: ' . $from),
+            'MIME-Version: 1.0',
+            'X-Sender: ' . get_bloginfo('name') . ' <' . get_bloginfo('admin_email') . '>',
+            'X-Priority: 1',
+            'Importance: High',
+            'X-Mailer: PHP/' . phpversion(),
+        );
+
+        $message = $this->open_email_container_html($email) . $message . $this->close_email_container_html();
+        $sent    = wp_mail($to, $subject, $message, $headers);
+
+        if ($sent) {
+            $this->log_email($to, $subject, $message, $email, $reference_id);
+        }
+    }
+
+    private function log_email($to, $subject, $message, $email, $reference_id = '') {
         global $wpdb;
         $table_name = $wpdb->prefix . 'mind_email_log';
         $wpdb->insert(
             $table_name,
             array(
-                'sent_to' => $to,
+                'sent_to'       => $to,
                 'email_subject' => $subject,
-                'email_id' => $email->ID,
-                'date_sent' => current_time('mysql'),
-                'email_content' => $message
+                'email_id'      => $email->ID,
+                'date_sent'     => current_time('mysql'),
+                'email_content' => $message,
+                'reference_id'  => $reference_id,
             )
         );
     }
@@ -398,22 +561,23 @@ class makeReminder
         wp_unschedule_event($timestamp, 'send_instructor_reminder_email');
 
     }
-    public static function activate(){
-        //create eail log table in database
+    public static function activate() {
         global $wpdb;
         $charset_collate = $wpdb->get_charset_collate();
-        $table_name = $wpdb->prefix . 'mind_email_log';
-        $sql = "CREATE TABLE $table_name (
+        $table_name      = $wpdb->prefix . 'mind_email_log';
+        $sql             = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             sent_to varchar(255) NOT NULL,
             email_subject varchar(255) NOT NULL,
             email_id mediumint(9) NOT NULL,
             date_sent datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
             email_content text NOT NULL,
-            PRIMARY KEY  (id)
+            reference_id varchar(255) NOT NULL DEFAULT '',
+            PRIMARY KEY  (id),
+            KEY email_dedup (email_id, sent_to(100), reference_id(100))
         ) $charset_collate;";
-        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-        dbDelta( $sql );
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
     }
 
 

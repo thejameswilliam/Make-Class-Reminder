@@ -31,22 +31,40 @@ class mindReminderAdmin {
 
 
   static function display_merg_tag_metabox($post) {
+    $email_type = get_field('email_type', $post->ID) ?: 'event_reminder';
 
     echo '<div class="metabox mind-reminder-merge-tags">';
-      echo '<h3>Merge Tags</h3>';
-      echo '<p>Use these merge tags in your email content to personalize the email.</p>';
+
+    if (in_array($email_type, array('reservation_confirmation', 'reservation_day_before'), true)) {
+      echo '<h3>Reservation Merge Tags</h3>';
       echo '<ul>';
-        echo '<li>{event_title} - The name of the event</li>';
-        echo '<li>{event_link} - The link to the event page</li>';
-        echo '<li>{start_date} - The start date of the event</li>';
-        echo '<li>{end_date} - The end date of the event</li>';
-        echo '<li>{start_time} - The start time of the event</li>';
-        echo '<li>{end_time} - The end time of then event</li>';
-        echo '<li>{excerpt} - The excerpt</li>';
-        echo '<li>{first_name} - The first name of the recipient</li>';
-        echo '<li>{last_name} - The last name of the recipient</li>';
-        echo '<li>{email} - The email address of the recipient</li>';
+        echo '<li><code>{first_name}</code> – Recipient\'s first name</li>';
+        echo '<li><code>{last_name}</code> – Recipient\'s last name</li>';
+        echo '<li><code>{email}</code> – Recipient\'s email address</li>';
+        echo '<li><code>{tool_name}</code> – Name of the tool</li>';
+        echo '<li><code>{tool_link}</code> – Link to the tool page</li>';
+        echo '<li><code>{reservation_date}</code> – Date of the reservation</li>';
+        echo '<li><code>{start_time}</code> – Reservation start time</li>';
+        echo '<li><code>{end_time}</code> – Reservation end time</li>';
+        echo '<li><code>{reservation_notes}</code> – Admin notes to the member about their reservation (SOPs, cleanup instructions, etc.)</li>';
+        echo '<li><code>{manage_reservations_link}</code> – Link to My Account &rarr; Tool Reservations</li>';
       echo '</ul>';
+    } else {
+      echo '<h3>Event Merge Tags</h3>';
+      echo '<ul>';
+        echo '<li><code>{event_title}</code> – The name of the event</li>';
+        echo '<li><code>{event_link}</code> – The link to the event page</li>';
+        echo '<li><code>{start_date}</code> – The start date of the event</li>';
+        echo '<li><code>{end_date}</code> – The end date of the event</li>';
+        echo '<li><code>{start_time}</code> – The start time of the event</li>';
+        echo '<li><code>{end_time}</code> – The end time of the event</li>';
+        echo '<li><code>{excerpt}</code> – The event excerpt</li>';
+        echo '<li><code>{first_name}</code> – Recipient\'s first name</li>';
+        echo '<li><code>{last_name}</code> – Recipient\'s last name</li>';
+        echo '<li><code>{email}</code> – Recipient\'s email address</li>';
+      echo '</ul>';
+    }
+
     echo '</div>';
   }
 

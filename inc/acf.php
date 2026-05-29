@@ -66,7 +66,21 @@ if ( function_exists( 'acf_add_local_field_group' ) ) {
 			'type' => 'relationship',
 			'instructions' => '',
 			'required' => 0,
-			'conditional_logic' => 0,
+			'conditional_logic' => array(
+				array(
+					array(
+						'field'    => 'field_makerem_email_type',
+						'operator' => '==',
+						'value'    => 'event_reminder',
+					),
+				),
+				array(
+					array(
+						'field'    => 'field_makerem_email_type',
+						'operator' => '==empty',
+					),
+				),
+			),
 			'wrapper' => array(
 				'width' => '',
 				'class' => '',
@@ -74,6 +88,54 @@ if ( function_exists( 'acf_add_local_field_group' ) ) {
 			),
 			'post_type' => array(
 				0 => 'events',
+			),
+			'post_status' => array(
+				0 => 'publish',
+			),
+			'taxonomy' => '',
+			'filters' => array(
+				0 => 'search',
+			),
+			'return_format' => 'id',
+			'min' => '',
+			'max' => '',
+			'allow_in_bindings' => 0,
+			'elements' => '',
+			'bidirectional' => 0,
+			'bidirectional_target' => array(
+			),
+		),
+		array(
+			'key' => 'field_makerem_connected_tools',
+			'label' => 'Connected Tools',
+			'name' => 'connected_tools',
+			'aria-label' => '',
+			'type' => 'relationship',
+			'instructions' => 'Leave empty to apply to all tools.',
+			'required' => 0,
+			'conditional_logic' => array(
+				array(
+					array(
+						'field'    => 'field_makerem_email_type',
+						'operator' => '==',
+						'value'    => 'reservation_confirmation',
+					),
+				),
+				array(
+					array(
+						'field'    => 'field_makerem_email_type',
+						'operator' => '==',
+						'value'    => 'reservation_day_before',
+					),
+				),
+			),
+			'wrapper' => array(
+				'width' => '',
+				'class' => '',
+				'id' => '',
+			),
+			'post_type' => array(
+				0 => 'make_tool',
 			),
 			'post_status' => array(
 				0 => 'publish',
@@ -203,6 +265,33 @@ if ( function_exists( 'acf_add_local_field_group' ) ) {
 	'title' => 'Reminder Email Options',
 	'fields' => array(
 		array(
+			'key' => 'field_makerem_email_type',
+			'label' => 'Email Type',
+			'name' => 'email_type',
+			'aria-label' => '',
+			'type' => 'radio',
+			'instructions' => '',
+			'required' => 0,
+			'conditional_logic' => 0,
+			'wrapper' => array(
+				'width' => '',
+				'class' => '',
+				'id' => '',
+			),
+			'choices' => array(
+				'event_reminder'          => 'Event Reminder',
+				'reservation_confirmation' => 'Reservation Confirmation',
+				'reservation_day_before'  => 'Reservation Day-Before Reminder',
+			),
+			'default_value' => 'event_reminder',
+			'return_format' => 'value',
+			'allow_null' => 0,
+			'other_choice' => 0,
+			'allow_in_bindings' => 0,
+			'layout' => 'vertical',
+			'save_other_choice' => 0,
+		),
+		array(
 			'key' => 'field_67d22baa39e43',
 			'label' => 'Recipient',
 			'name' => 'recipient',
@@ -210,7 +299,21 @@ if ( function_exists( 'acf_add_local_field_group' ) ) {
 			'type' => 'radio',
 			'instructions' => '',
 			'required' => 0,
-			'conditional_logic' => 0,
+			'conditional_logic' => array(
+				array(
+					array(
+						'field'    => 'field_makerem_email_type',
+						'operator' => '==',
+						'value'    => 'event_reminder',
+					),
+				),
+				array(
+					array(
+						'field'    => 'field_makerem_email_type',
+						'operator' => '==empty',
+					),
+				),
+			),
 			'wrapper' => array(
 				'width' => '',
 				'class' => '',
@@ -237,7 +340,21 @@ if ( function_exists( 'acf_add_local_field_group' ) ) {
 			'type' => 'radio',
 			'instructions' => '',
 			'required' => 0,
-			'conditional_logic' => 0,
+			'conditional_logic' => array(
+				array(
+					array(
+						'field'    => 'field_makerem_email_type',
+						'operator' => '==',
+						'value'    => 'event_reminder',
+					),
+				),
+				array(
+					array(
+						'field'    => 'field_makerem_email_type',
+						'operator' => '==empty',
+					),
+				),
+			),
 			'wrapper' => array(
 				'width' => '',
 				'class' => '',
@@ -275,6 +392,51 @@ if ( function_exists( 'acf_add_local_field_group' ) ) {
 	'active' => true,
 	'description' => '',
 	'show_in_rest' => 0,
+) );
+
+	acf_add_local_field_group( array(
+	'key' => 'group_makerem_tool_notes',
+	'title' => 'Reservation Notes',
+	'fields' => array(
+		array(
+			'key'               => 'field_makerem_tool_notes',
+			'label'             => 'Reservation Notes',
+			'name'              => 'mtr_reservation_notes',
+			'type'              => 'wysiwyg',
+			'instructions'      => 'Included in confirmation and reminder emails via {reservation_notes}. Use for SOPs, cleanup procedures, safety reminders, etc.',
+			'required'          => 0,
+			'conditional_logic' => 0,
+			'wrapper'           => array(
+				'width' => '',
+				'class' => '',
+				'id'    => '',
+			),
+			'default_value'   => '',
+			'tabs'            => 'all',
+			'toolbar'         => 'full',
+			'media_upload'    => 0,
+			'delay'           => 0,
+			'allow_in_bindings' => 0,
+		),
+	),
+	'location' => array(
+		array(
+			array(
+				'param'    => 'post_type',
+				'operator' => '==',
+				'value'    => 'make_tool',
+			),
+		),
+	),
+	'menu_order'            => 0,
+	'position'              => 'normal',
+	'style'                 => 'default',
+	'label_placement'       => 'top',
+	'instruction_placement' => 'label',
+	'hide_on_screen'        => '',
+	'active'                => true,
+	'description'           => '',
+	'show_in_rest'          => 0,
 ) );
 };
 
